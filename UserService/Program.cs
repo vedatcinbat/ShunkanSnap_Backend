@@ -1,11 +1,19 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using UserService.Services;
+using UserService.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
+
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateUserRequestValidator>();
+
+
 builder.Services.AddDbContext<UserDbContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("mySqlConnection"));
 });
