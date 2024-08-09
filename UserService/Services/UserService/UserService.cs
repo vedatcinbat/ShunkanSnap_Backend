@@ -1,6 +1,11 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using UserService.Responses;
+using UserService.Configuration;
 
 namespace UserService.Services;
 
@@ -8,14 +13,54 @@ public class UserService : IUserService
 {
     private readonly UserDbContext _context;
     private readonly UserEventPublisher _eventPublisher;
+    private readonly JwtSettings _jwtSettings;
 
 
-    public UserService(UserDbContext context, UserEventPublisher eventPublisher)
+
+    public UserService(UserDbContext context, UserEventPublisher eventPublisher, JwtSettings jwtSettings)
     {
         _context = context;
         _eventPublisher = eventPublisher;
+        _jwtSettings = jwtSettings;
     }
 
+    public async Task<AuthResponse> AuthenticateAsync(string username, string password)
+    {
+        var user = await _context.Users.SingleOrDefaultAsync(u => u.Username == username);
+
+        if (user == null || !VerifyPassword(user.HashedPassword, password))
+        {
+            return null;
+        }
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes(_jwtSettings.Key); // Ensure this key is at least 32 bytes long
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new Claim[]
+            {
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, "User")
+            }),
+            Expires = DateTime.UtcNow.AddDays(_jwtSettings.ExpireDays),
+            Issuer = _jwtSettings.Issuer,
+            Audience = _jwtSettings.Audience,
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        var tokenString = tokenHandler.WriteToken(token);
+
+        return new AuthResponse
+        {
+            Token = tokenString,
+            Expiration = tokenDescriptor.Expires ?? DateTime.UtcNow.AddDays(_jwtSettings.ExpireDays),
+            UserId = user.UserId,
+            Username = user.Username
+        };
+    }
     public async Task<User> CreateUserAsync(CreateUserRequest request)
     {
         string hashedPassword = HashPassword(request.Password);
@@ -49,7 +94,7 @@ public class UserService : IUserService
     {
         var user = await _context.Users.SingleOrDefaultAsync(x => x.UserId == userId);
 
-        if(user == null)
+        if (user == null || user.IsDeleted)
         {
             return null;
         }
@@ -88,5 +133,12 @@ public class UserService : IUserService
         using var sha256 = SHA256.Create();
         var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
         return BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+    }
+
+    private bool VerifyPassword(string hashedPassword, string password)
+    {
+        // Implement your password verification logic here
+        // For example, you can compare hashes using a secure hashing algorithm
+        return hashedPassword == HashPassword(password);
     }
 }

@@ -1,6 +1,8 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UserService.Requests;
 using UserService.Responses;
-using UserService.Services;
 
 [ApiController]
 [Route("api/v1/users")]
@@ -134,8 +136,22 @@ public class UserController : ControllerBase
     }
 
     [HttpDelete("delete-user/{userId}")]
+    [Authorize]
     public async Task<IActionResult> DeleteUser([FromRoute] int userId)
     {
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if(userIdClaim == null || userId != int.Parse(userIdClaim))
+        {
+            return Unauthorized(new ProblemDetail
+            {
+                ProblemType = "unauthorized_access",
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized access.",
+                Detail = "You are not authorized to delete this user."
+            });
+        }
+
         try
         {
             var user = await _userService.DeleteUserAsync(userId);
@@ -168,6 +184,22 @@ public class UserController : ControllerBase
             return StatusCode(500, new { Message = "An error occurred while deleting the user.", Error = ex.Message });
         }
     }
+
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    {
+        var authResponse = await _userService.AuthenticateAsync(request.Username, request.Password);
+
+        if (authResponse == null)
+        {
+            return BadRequest(new { Message = "Username or password is incorrect." });
+        }
+
+        return Ok(authResponse);
+    }
+
 
     private async Task<bool> UsernameExistsAsync(string username)
     {
