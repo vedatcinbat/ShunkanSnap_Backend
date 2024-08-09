@@ -55,6 +55,16 @@ public class UserService : IUserService
         return await _context.Users.AnyAsync(x => x.Email == email);
     }
 
+    public async Task<List<User>> GetAllUsersAsync()
+    {
+        return await _context.Users.ToListAsync();
+    }
+
+    public async Task<User?> GetUserByIdAsync(int userId)
+    {
+        return await _context.Users.SingleOrDefaultAsync(x => x.UserId == userId);
+    }
+
     private string HashPassword(string password)
     {
         using var sha256 = SHA256.Create();
