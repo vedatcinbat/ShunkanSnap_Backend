@@ -133,6 +133,42 @@ public class UserController : ControllerBase
         }
     }
 
+    [HttpDelete("delete-user/{userId}")]
+    public async Task<IActionResult> DeleteUser([FromRoute] int userId)
+    {
+        try
+        {
+            var user = await _userService.DeleteUserAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound(new ProblemDetail
+                {
+                    ProblemType = "user_not_found",
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "User not found.",
+                    Detail = "The user with the provided user id does not exist."
+                });
+            }
+
+            var response = new UserDeletedResponse()
+            {
+                UserId = user.UserId,
+                Username = user.Username,
+                Email = user.Email,
+                DeletedAt = user.UpdatedAt,
+                Message = "User deleted successfully."
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the user.");
+            return StatusCode(500, new { Message = "An error occurred while deleting the user.", Error = ex.Message });
+        }
+    }
+
     private async Task<bool> UsernameExistsAsync(string username)
     {
         bool isUsernameExists = await _userService.GetUserByUsernameAsync(username);

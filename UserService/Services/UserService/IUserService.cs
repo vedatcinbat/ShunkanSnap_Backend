@@ -4,4 +4,5 @@ public interface IUserService {
     Task<bool> GetUserByEmailAsync(string username);
     Task<List<User>> GetAllUsersAsync();
     Task<User?> GetUserByIdAsync(int userId);
+    Task<User?> DeleteUserAsync(int userId);
 }

@@ -45,6 +45,24 @@ public class UserService : IUserService
         return user;
     }
 
+    public async Task<User?> DeleteUserAsync(int userId)
+    {
+        var user = await _context.Users.SingleOrDefaultAsync(x => x.UserId == userId);
+
+        if(user == null)
+        {
+            return null;
+        }
+
+        user.IsDeleted = true;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        _eventPublisher.PublishUserDeleted(user);
+
+        return user;
+    }
+
     public async Task<bool> GetUserByUsernameAsync(string username)
     {
         return await _context.Users.AnyAsync(x => x.Username == username);
