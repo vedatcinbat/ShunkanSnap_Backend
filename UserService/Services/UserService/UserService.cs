@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace UserService.Services;
 
@@ -44,6 +45,15 @@ public class UserService : IUserService
         return user;
     }
 
+    public async Task<bool> GetUserByUsernameAsync(string username)
+    {
+        return await _context.Users.AnyAsync(x => x.Username == username);
+    }
+
+    public async Task<bool> GetUserByEmailAsync(string email)
+    {
+        return await _context.Users.AnyAsync(x => x.Email == email);
+    }
 
     private string HashPassword(string password)
     {

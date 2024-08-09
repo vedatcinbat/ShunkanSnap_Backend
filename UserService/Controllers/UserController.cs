@@ -1,27 +1,45 @@
 using Microsoft.AspNetCore.Mvc;
+using UserService.Responses;
 using UserService.Services;
 
 [ApiController]
 [Route("api/[controller]")]
 public class UserController : ControllerBase
 {
-    private readonly UserEventPublisher _publisher;
     private readonly IUserService _userService;
-
     private readonly ILogger<UserController> _logger;
 
-    public UserController(UserEventPublisher publisher, IUserService userService, ILogger<UserController> logger)
+    public UserController(IUserService userService, ILogger<UserController> logger)
     {
-        _publisher = publisher;
         _userService = userService;
         _logger = logger;
     }
 
     [HttpPost]
     [ProducesResponseType<CreateUserResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
+        if (await UsernameExistsAsync(request.Username))
+        {
+            return BadRequest(new ProblemDetail {
+                ProblemType = "username_already_exists",
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Username already exists.",
+                Detail = "The username provided already exists. Please provide a different username."
+            });
+        }
+
+        if(await EmailExistsAsync(request.Email))
+        {
+            return BadRequest(new ProblemDetail {
+                ProblemType = "email_already_exists",
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Email already exists.",
+                Detail = "The email provided already exists. Please provide a different email."
+            });
+        }
+
         try
         {
             var user = await _userService.CreateUserAsync(request);
@@ -42,7 +60,20 @@ public class UserController : ControllerBase
             _logger.LogError(ex, "An error occurred while creating the user.");
             return StatusCode(500, new { Message = "An error occurred while creating the user.", Error = ex.Message });
         }
+    }
 
+    private async Task<bool> UsernameExistsAsync(string username)
+    {
+        bool isUsernameExists = await _userService.GetUserByUsernameAsync(username);
 
+        return isUsernameExists;
+    }
+
+    private async Task<bool> EmailExistsAsync(string email)
+    {
+        var isEmaileExists = await _userService.GetUserByEmailAsync(email);
+
+        return isEmaileExists;
     }
 }
+
