@@ -43,7 +43,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateUserRequestValidator>();
 
 builder.Services.AddDbContext<UserDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("msSqlConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("UserDb")));
 
 builder.Services.AddScoped<IUserService, UserService.Services.UserService>();
 
@@ -89,7 +89,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

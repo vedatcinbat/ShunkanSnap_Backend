@@ -28,4 +28,8 @@ public class User
 
     public Visibility Visibility { get; set; }
 
+    public string? ActivationCode { get; set; }
+
+    public bool IsActive { get; set; }
+
 }

@@ -2,9 +2,9 @@ namespace UserService.Responses
 {
     public class AuthResponse
     {
-        public string Token { get; set; }
+        public required string Token { get; set; }
         public DateTime Expiration { get; set; }
         public int UserId { get; set; }
-        public string Username { get; set; }
+        public required string Username { get; set; }
     }
 }

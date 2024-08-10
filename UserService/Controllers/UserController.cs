@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using UserService.Requests;
 using UserService.Responses;
 
@@ -10,11 +12,13 @@ public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly ILogger<UserController> _logger;
+    private readonly UserDbContext _context;
 
-    public UserController(IUserService userService, ILogger<UserController> logger)
+    public UserController(IUserService userService, ILogger<UserController> logger, UserDbContext context)
     {
         _userService = userService;
         _logger = logger;
+        _context = context;
     }
 
     [HttpGet("get-all-users")]
@@ -141,7 +145,7 @@ public class UserController : ControllerBase
     {
         var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
-        if(userIdClaim == null || userId != int.Parse(userIdClaim))
+        if (userIdClaim == null || userId != int.Parse(userIdClaim))
         {
             return Unauthorized(new ProblemDetail
             {
@@ -200,6 +204,12 @@ public class UserController : ControllerBase
         return Ok(authResponse);
     }
 
+    [HttpGet("{id}/exists")]
+    public async Task<IActionResult> UserExists(int id)
+    {
+        var exists = await _context.Users.AnyAsync(u => u.UserId == id);
+        return Ok(new { exists });
+    }
 
     private async Task<bool> UsernameExistsAsync(string username)
     {
