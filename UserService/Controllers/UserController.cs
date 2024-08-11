@@ -132,6 +132,11 @@ public class UserController : ControllerBase
                 });
             }
 
+            if (user.Visibility == request.Visibility)
+            {
+                return Ok($"User has already same visibility situation: {request.Visibility}");
+            }
+
             user.Visibility = request.Visibility;
             user.UpdatedAt = DateTime.UtcNow;
         
