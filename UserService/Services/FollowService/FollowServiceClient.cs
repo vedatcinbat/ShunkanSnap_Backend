@@ -26,4 +26,25 @@ public class FollowServiceClient : IFollowServiceClient
 
         return JsonConvert.DeserializeObject<IEnumerable<int>>(content);    
     }
+
+    public async Task<bool> IsCurrentUserFollowsThisPerson(int currentUserId, int followeeUserId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"/api/v1/follows/{currentUserId}/isFollows/{followeeUserId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return bool.TryParse(content, out var isFollowing) && isFollowing;
+            }
+            
+            return false;
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Request error: {ex.Message}");
+            return false;
+        }
+    }
 }

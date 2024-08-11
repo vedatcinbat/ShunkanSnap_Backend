@@ -59,24 +59,39 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("get-user/{userId}")]
-    public async Task<IActionResult> GetUserById(int userId)
+    public async Task<IActionResult> GetUserProfile(int userId)
+{
+    var user = await _userService.GetUserByIdAsync(userId);
+    
+    if (user == null)
     {
-        try
+        return NotFound(new ProblemDetail
         {
-            var user = await _userService.GetUserByIdAsync(userId);
-
-            if (user == null)
+            ProblemType = "user-not-found",
+            Title = "User Not Found",
+            Status = StatusCodes.Status404NotFound,
+            Detail = $"User with ID {userId} does not exist."
+        });
+    }
+    
+    var currentUserIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+    
+    if (currentUserIdClaim == null)
+    {
+        if (user.Visibility == Visibility.Private)
+        {
+            return BadRequest(new ProblemDetail
             {
-                return NotFound(new ProblemDetail
-                {
-                    ProblemType = "user_not_found",
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "User not found.",
-                    Detail = "The user with the provided user id does not exist."
-                });
-            }
-
-            var response = new UserResponse
+                ProblemType = "profile-is-private-user-is-not-logged-in",
+                Title = "User has not authenticated and profile is private",
+                Status = StatusCodes.Status400BadRequest,
+                Detail = "Profile is private and user is not logged in"
+            });
+        }
+        
+        if (user.Visibility == Visibility.Public)
+        {
+            var responsePublicVis = new UserResponse
             {
                 UserId = user.UserId,
                 ProfilePictureUrl = user.ProfilePictureUrl,
@@ -89,15 +104,65 @@ public class UserController : ControllerBase
                 Gender = user.Gender,
                 Visibility = user.Visibility
             };
-
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while fetching the user.");
-            return StatusCode(500, new { Message = "An error occurred while fetching the user.", Error = ex.Message });
+            
+            return Ok(responsePublicVis);
         }
     }
+    else
+    {
+        if (!int.TryParse(currentUserIdClaim, out var currentUserId))
+        {
+            return BadRequest(new ProblemDetail
+            {
+                ProblemType = "invalid-user-id-claim",
+                Title = "Invalid User ID Claim",
+                Status = StatusCodes.Status400BadRequest,
+                Detail = "The User ID claim is invalid."
+            });
+        }
+        
+        var isCurrentUserFollows = await _followService.IsCurrentUserFollowsThisPerson(currentUserId, userId);
+        
+        if (!isCurrentUserFollows)
+        {
+            if (user.Visibility == Visibility.Private)
+            {
+                return BadRequest(new ProblemDetail
+                {
+                    ProblemType = "profile-is-private-user-not-followed",
+                    Title = "Profile is private and current user is not following",
+                    Status = StatusCodes.Status400BadRequest,
+                    Detail = "Profile is private and you are not following this user."
+                });
+            }
+        }
+
+        var response = new UserResponse
+        {
+            UserId = user.UserId,
+            ProfilePictureUrl = user.ProfilePictureUrl,
+            Username = user.Username,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Bio = user.Bio,
+            Age = user.Age,
+            Gender = user.Gender,
+            Visibility = user.Visibility
+        };
+        
+        return Ok(response);
+    }
+
+    return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetail
+    {
+        ProblemType = "unexpected-error",
+        Title = "Unexpected Error",
+        Status = StatusCodes.Status500InternalServerError,
+        Detail = "An unexpected error occurred while processing the request."
+    });
+}
+
 
     [HttpPatch("update-visibility")]
     public async Task<IActionResult> UpdateUserVisibility(UpdateVisibilityRequest request)

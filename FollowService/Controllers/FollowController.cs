@@ -33,6 +33,15 @@ namespace FollowService.Controllers
             return Ok(followerIds);
         }
 
+        [HttpGet("{userId1:int}/isFollows/{userId2:int}")]
+        public async Task<IActionResult> CheckRelation([FromRoute] int userId1, [FromRoute] int userId2)
+        {
+            var record = await _context.Follows.AsNoTracking().Where(f => f.IsDeleted == false)
+                .SingleOrDefaultAsync(f => f.FollowerUserId == userId1 && f.FolloweeUserId == userId2);
+
+            return Ok(record != null);
+        }
+
         [HttpPost("{followerId}/followed/{followeeId}")]
         public async Task<IActionResult> FollowUser(int followerId, int followeeId)
         {
