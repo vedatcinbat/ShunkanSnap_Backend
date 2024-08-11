@@ -20,12 +20,12 @@ namespace FollowService.Services.UserServices
                 var response = await _httpClient.GetAsync($"/api/v1/users/{userId}/exists");
                 if (!response.IsSuccessStatusCode)
                 {
-                    return false; // Return false if the response indicates a failure
+                    return false;
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
                 var json = JObject.Parse(content);
-                return json["exists"].Value<bool>(); // Return true or false based on the existence check
+                return json["exists"].Value<bool>();
             }
             catch (HttpRequestException ex)
             {

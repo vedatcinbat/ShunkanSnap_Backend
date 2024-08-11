@@ -8,7 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using UserService.Responses;
 using UserService.Configuration;
 
-namespace UserService.Services;
+namespace UserService.Services.UserService;
 
 public class UserService : IUserService
 {
@@ -71,6 +71,7 @@ public class UserService : IUserService
             LastName = request.LastName,
             Email = request.Email,
             HashedPassword = hashedPassword,
+            ProfilePictureUrl = request.ProfilePictureUrl,
             Username = request.Username,
             Bio = request.Bio,
             Age = request.Age,
@@ -137,8 +138,6 @@ public class UserService : IUserService
 
     private bool VerifyPassword(string hashedPassword, string password)
     {
-        // Implement your password verification logic here
-        // For example, you can compare hashes using a secure hashing algorithm
         return hashedPassword == HashPassword(password);
     }
 }

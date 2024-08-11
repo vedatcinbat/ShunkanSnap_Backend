@@ -9,7 +9,8 @@ public class User
     public required string Email { get; set; }
 
     public required string HashedPassword { get; set; }
-
+    
+    public string? ProfilePictureUrl { get; set; }
     public required string Username { get; set; }
 
     public string? Bio { get; set; }

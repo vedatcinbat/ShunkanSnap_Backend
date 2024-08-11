@@ -1,11 +1,11 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserService.Requests;
 using UserService.Responses;
 using UserService.Services;
+using UserService.Services.FollowService;
 
 [ApiController]
 [Route("api/v1/users")]
@@ -15,13 +15,15 @@ public class UserController : ControllerBase
     private readonly ILogger<UserController> _logger;
     private readonly UserDbContext _context;
     private readonly UserEventPublisher _eventPublisher;
+    private readonly IFollowServiceClient _followService;
     
-    public UserController(IUserService userService, ILogger<UserController> logger, UserDbContext context, UserEventPublisher eventPublisher)
+    public UserController(IUserService userService, IFollowServiceClient followService ,ILogger<UserController> logger, UserDbContext context, UserEventPublisher eventPublisher)
     {
         _userService = userService;
         _logger = logger;
         _context = context;
         _eventPublisher = eventPublisher;
+        _followService = followService;
     }
 
     [HttpGet("get-all-users")]
@@ -34,6 +36,7 @@ public class UserController : ControllerBase
             var response = users.Select(user => new UserResponse()
             {
                 UserId = user.UserId,
+                ProfilePictureUrl = user.ProfilePictureUrl,
                 Username = user.Username,
                 Email = user.Email,
                 FirstName = user.FirstName,
@@ -74,6 +77,7 @@ public class UserController : ControllerBase
             var response = new UserResponse
             {
                 UserId = user.UserId,
+                ProfilePictureUrl = user.ProfilePictureUrl,
                 Username = user.Username,
                 Email = user.Email,
                 FirstName = user.FirstName,
@@ -157,8 +161,7 @@ public class UserController : ControllerBase
                 Detail = "You have to authenticate first"
             });
         }
-
-
+        
         try
         {
             var userId = int.Parse(userIdClaim);
@@ -209,6 +212,44 @@ public class UserController : ControllerBase
             return StatusCode(500, new { Message = "An error occurred while saving the user.", Error = ex.Message });
         }
         
+    }
+
+    [HttpGet("get-followers")]
+    public async Task<IActionResult> GetFollowers()
+    {
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (userIdClaim == null)
+        {
+            return Unauthorized(new ProblemDetail
+            {
+                ProblemType = "unauthorized_access",
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized access.",
+                Detail = "You are not authorized to delete this user."
+            });
+        }
+
+        try
+        {
+            var followerIds = await _followService.GetFollowersIdsWithFolloweeUserId(int.Parse(userIdClaim));
+
+            var followers = await _context.Users
+                .Where(u => followerIds.Contains(u.UserId) && !u.IsDeleted)
+                .Select(u => new
+                {
+                    u.UserId,
+                    u.Username,
+                    u.Bio,
+                    u.ProfilePictureUrl
+                }).ToListAsync();
+
+            return Ok(followers);
+        }catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the user.");
+            return StatusCode(500, new { Message = "An error occurred while saving the user.", Error = ex.Message });
+        }
     }
 
     [HttpDelete("delete-user/{userId}")]
@@ -279,7 +320,7 @@ public class UserController : ControllerBase
     [HttpGet("{id}/exists")]
     public async Task<IActionResult> UserExists(int id)
     {
-        var exists = await _context.Users.AnyAsync(u => u.UserId == id);
+        var exists = await _context.Users.Where(u => u.IsDeleted == false).AnyAsync(u => u.UserId == id);
         return Ok(new { exists });
     }
 

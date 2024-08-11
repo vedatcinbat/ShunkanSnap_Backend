@@ -9,10 +9,15 @@ using UserService.Validators;
 using UserService.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using UserService.Services.FollowService;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson(options =>
+{
+    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+    options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
+});
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 
@@ -45,7 +50,12 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateUserRequestValidator>
 builder.Services.AddDbContext<UserDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("UserDb")));
 
-builder.Services.AddScoped<IUserService, UserService.Services.UserService>();
+builder.Services.AddScoped<IUserService, UserService.Services.UserService.UserService>();
+
+builder.Services.AddHttpClient<IFollowServiceClient, FollowServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5179"); // FollowService port
+});
 
 builder.Services.AddSingleton<UserEventPublisher>();
 

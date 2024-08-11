@@ -22,6 +22,17 @@ namespace FollowService.Controllers
             _userServiceClient = userServiceClient;
         }
 
+        [HttpGet("get-user-follower-ids/{userId:int}")]
+        public async Task<IActionResult> GetUserFollowerByUserId([FromRoute] int userId)
+        {
+            var followerIds = await _context.Follows
+                .Where(f => f.FolloweeUserId == userId && !f.IsDeleted)
+                .Select(f => f.FollowerUserId)
+                .ToListAsync();
+
+            return Ok(followerIds);
+        }
+
         [HttpPost("{followerId}/followed/{followeeId}")]
         public async Task<IActionResult> FollowUser(int followerId, int followeeId)
         {
