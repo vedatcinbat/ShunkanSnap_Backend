@@ -46,6 +46,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateUserRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateVisibilityRequestValidator>();
 
 builder.Services.AddDbContext<UserDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("UserDb")));

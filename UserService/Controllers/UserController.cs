@@ -7,6 +7,8 @@ using UserService.Responses;
 using UserService.Services;
 using UserService.Services.FollowService;
 
+namespace UserService.Controllers;
+
 [ApiController]
 [Route("api/v1/users")]
 public class UserController : ControllerBase
@@ -94,6 +96,62 @@ public class UserController : ControllerBase
         {
             _logger.LogError(ex, "An error occurred while fetching the user.");
             return StatusCode(500, new { Message = "An error occurred while fetching the user.", Error = ex.Message });
+        }
+    }
+
+    [HttpPatch("update-visibility")]
+    public async Task<IActionResult> UpdateUserVisibility(UpdateVisibilityRequest request)
+    {
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+        if (userIdClaim == null)
+        {
+            return Unauthorized(new ProblemDetail
+            {
+                ProblemType = "unauthorized_access",
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized access.",
+                Detail = "You are not authorized to delete this user."
+            });
+        }
+
+        try
+        {
+            var userId = int.Parse(userIdClaim);
+
+            var user = await _context.Users.Where(u => u.IsDeleted == false).SingleOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new ProblemDetail
+                {
+                    ProblemType = "user_not_found",
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "User not found.",
+                    Detail = "The user with the provided user id does not exist."
+                });
+            }
+
+            user.Visibility = request.Visibility;
+            user.UpdatedAt = DateTime.UtcNow;
+        
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+        
+            var response = new UserVisibilityChangedResponse()
+            {
+                UserId = user.UserId,
+                Username = user.Username,
+                Visibility = user.Visibility,
+                UpdatedAt = user.UpdatedAt
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating the user.");
+            return StatusCode(500, new { Message = "An error occurred while creating the user.", Error = ex.Message });
         }
     }
 

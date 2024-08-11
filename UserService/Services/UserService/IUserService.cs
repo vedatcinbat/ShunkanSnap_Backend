@@ -7,5 +7,5 @@ public interface IUserService {
     Task<List<User>> GetAllUsersAsync();
     Task<User?> GetUserByIdAsync(int userId);
     Task<User?> DeleteUserAsync(int userId);
-    Task<AuthResponse> AuthenticateAsync(string username, string password);
+    Task<AuthResponse?> AuthenticateAsync(string username, string password);
 }

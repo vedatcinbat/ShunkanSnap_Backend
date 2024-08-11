@@ -23,7 +23,7 @@ public class UserService : IUserService
         _jwtSettings = jwtSettings;
     }
 
-    public async Task<AuthResponse> AuthenticateAsync(string username, string password)
+    public async Task<AuthResponse?> AuthenticateAsync(string username, string password)
     {
         var user = await _context.Users.SingleOrDefaultAsync(u => u.Username == username);
 
