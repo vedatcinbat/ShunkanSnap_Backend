@@ -51,4 +51,22 @@ public class UserEventPublisher
 
         channel.BasicPublish(exchange: "", routingKey: "user_deleted", basicProperties: null, body: body);
     }
+    
+    public void PublishUserSaved(User user) {
+        using var channel = _connection.CreateModel();
+        channel.QueueDeclare(queue: "user_saved", durable: false, exclusive: false, autoDelete: false, arguments: null);
+
+        var userSavedEvent = new UserSavedEvent()
+        {
+            UserId = user.UserId,
+            Username = user.Username,
+            Email = user.Email,
+            SavedAt = user.UpdatedAt
+        };
+
+        var message = JsonConvert.SerializeObject(userSavedEvent);
+        var body = Encoding.UTF8.GetBytes(message);
+
+        channel.BasicPublish(exchange: "", routingKey: "user_saved", basicProperties: null, body: body);
+    }
 }

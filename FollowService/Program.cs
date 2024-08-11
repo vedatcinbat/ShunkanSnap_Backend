@@ -8,9 +8,11 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
 {
     options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
     options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
-});;
+});
+
 builder.Services.AddDbContext<FollowDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("FollowDb")));
+
 builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>(client =>
 {
     client.BaseAddress = new Uri("http://localhost:5260"); // UserService port

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.IdentityModel.Tokens;
 using UserService.Responses;
 using UserService.Configuration;
@@ -14,8 +15,6 @@ public class UserService : IUserService
     private readonly UserDbContext _context;
     private readonly UserEventPublisher _eventPublisher;
     private readonly JwtSettings _jwtSettings;
-
-
 
     public UserService(UserDbContext context, UserEventPublisher eventPublisher, JwtSettings jwtSettings)
     {
@@ -61,6 +60,7 @@ public class UserService : IUserService
             Username = user.Username
         };
     }
+    
     public async Task<User> CreateUserAsync(CreateUserRequest request)
     {
         string hashedPassword = HashPassword(request.Password);
@@ -92,9 +92,9 @@ public class UserService : IUserService
 
     public async Task<User?> DeleteUserAsync(int userId)
     {
-        var user = await _context.Users.SingleOrDefaultAsync(x => x.UserId == userId);
+        var user = await _context.Users.Where(u => u.IsDeleted == false).SingleOrDefaultAsync(x => x.UserId == userId);
 
-        if (user == null || user.IsDeleted)
+        if (user == null)
         {
             return null;
         }

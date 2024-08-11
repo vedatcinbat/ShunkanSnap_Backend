@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserService.Requests;
 using UserService.Responses;
+using UserService.Services;
 
 [ApiController]
 [Route("api/v1/users")]
@@ -13,12 +14,14 @@ public class UserController : ControllerBase
     private readonly IUserService _userService;
     private readonly ILogger<UserController> _logger;
     private readonly UserDbContext _context;
-
-    public UserController(IUserService userService, ILogger<UserController> logger, UserDbContext context)
+    private readonly UserEventPublisher _eventPublisher;
+    
+    public UserController(IUserService userService, ILogger<UserController> logger, UserDbContext context, UserEventPublisher eventPublisher)
     {
         _userService = userService;
         _logger = logger;
         _context = context;
+        _eventPublisher = eventPublisher;
     }
 
     [HttpGet("get-all-users")]
@@ -137,6 +140,75 @@ public class UserController : ControllerBase
             _logger.LogError(ex, "An error occurred while creating the user.");
             return StatusCode(500, new { Message = "An error occurred while creating the user.", Error = ex.Message });
         }
+    }
+
+    [HttpPost("save-account")]
+    public async Task<IActionResult> SaveUserAccount()
+    {
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        
+        if (userIdClaim == null)
+        {
+            return Unauthorized(new ProblemDetail
+            {
+                ProblemType = "unauthorized_access",
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized access.",
+                Detail = "You have to authenticate first"
+            });
+        }
+
+
+        try
+        {
+            var userId = int.Parse(userIdClaim);
+
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new ProblemDetail
+                {
+                    ProblemType = "user_not_found",
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "User not found.",
+                    Detail = "The user with the provided user id does not exist."
+                });
+            }
+
+            if (user.IsDeleted == false)
+            {
+                return BadRequest(new ProblemDetail
+                {
+                    ProblemType = "user_has_already_active",
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "User has already active.",
+                    Detail = "The user with the provided user id has already active."
+                });
+            }
+
+            user.IsDeleted = false;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            _eventPublisher.PublishUserSaved(user);
+            
+            var response = new UserSavedResponse()
+            {
+                UserId = user.UserId,
+                Username = user.Username,
+                Email = user.Email,
+                DeletedAt = user.UpdatedAt,
+                Message = $"User {user.UserId} {user.Username} {user.LastName} saved successfully."
+            };
+
+            return Ok(response);
+        }catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while deleting the user.");
+            return StatusCode(500, new { Message = "An error occurred while saving the user.", Error = ex.Message });
+        }
+        
     }
 
     [HttpDelete("delete-user/{userId}")]
