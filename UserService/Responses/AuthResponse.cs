@@ -1,3 +1,5 @@
+using UserService.Enums;
+
 namespace UserService.Responses
 {
     public class AuthResponse
@@ -6,5 +8,7 @@ namespace UserService.Responses
         public DateTime Expiration { get; set; }
         public int UserId { get; set; }
         public required string Username { get; set; }
+        
+        public UserRole UserRole { get; set; }
     }
 }

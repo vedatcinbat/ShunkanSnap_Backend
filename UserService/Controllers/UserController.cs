@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using UserService.Enums;
 using UserService.Requests;
 using UserService.Responses;
 using UserService.Services;
@@ -58,7 +59,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpGet("get-user/{userId}")]
+    [HttpGet("get-user/{userId:int}")]
     public async Task<IActionResult> GetUserProfile(int userId)
 {
     var user = await _userService.GetUserByIdAsync(userId);
@@ -224,6 +225,35 @@ public class UserController : ControllerBase
             return StatusCode(500, new { Message = "An error occurred while creating the user.", Error = ex.Message });
         }
     }
+    
+    [HttpGet("get-user-auth-infos")]
+    [Authorize]
+    public IActionResult GetUserAuthInfos()
+    {
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var usernameClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+        var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+        if (userIdClaim == null || usernameClaim == null || roleClaim == null)
+        {
+            return Unauthorized(new ProblemDetail
+            {
+                ProblemType = "unauthorized_access",
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized access.",
+                Detail = "You have to authenticate first"
+            });
+        }
+
+        var response = new UserAuthInfosResponse()
+        {
+            UserId = int.Parse(userIdClaim),
+            Username = usernameClaim,
+            UserRole = roleClaim
+        };
+
+        return Ok(response);
+    }
 
     [HttpPost("create-user")]
     [ProducesResponseType<CreateUserResponse>(StatusCodes.Status200OK)]
@@ -377,6 +407,72 @@ public class UserController : ControllerBase
         {
             _logger.LogError(ex, "An error occurred while deleting the user.");
             return StatusCode(500, new { Message = "An error occurred while saving the user.", Error = ex.Message });
+        }
+    }
+    
+    [HttpPatch("update-user-role")]
+    [Authorize]
+    public async Task<IActionResult> UpdateUserRole(UpdateUserRoleRequest request)
+    {
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var userRole = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+        if (userIdClaim == null)
+        {
+            return Unauthorized(new ProblemDetail
+            {
+                ProblemType = "unauthorized_access",
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized access.",
+                Detail = "You are not authorized to delete this user."
+            });
+        }
+
+        if (userRole != UserRole.Admin.ToString() && userRole != UserRole.SuperAdmin.ToString())
+        {
+            return BadRequest(new ProblemDetail
+            {
+                ProblemType = "unauthorized_access",
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized access.",
+                Detail = "You are not authorized to update user role."
+            });
+        }
+
+        try
+        {
+            int currentUserId = int.Parse(userIdClaim);
+            var userRoleMapping = await _context.UserRoles.SingleOrDefaultAsync(ur => ur.UserId == currentUserId);
+
+            if (userRoleMapping == null)
+            {
+                throw new Exception("User role mapping not found.");
+            }
+            
+            var userRoleId = userRoleMapping.RoleId;
+
+            if (userRoleId == request.RoleId)
+            {
+                throw new Exception("User already has the same role.");
+            }
+            
+            userRoleMapping.RoleId = request.RoleId;
+            userRoleMapping.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            
+            var response = new UserRoleUpdatedResponse
+            {
+                UserId = userRoleMapping.UserId,
+                RoleId = userRoleMapping.RoleId,
+                UpdatedAt = userRoleMapping.UpdatedAt
+            };
+            
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while creating the user.");
+            return StatusCode(500, new { Message = "An error occurred while creating the user.", Error = ex.Message });
         }
     }
 

@@ -1,3 +1,5 @@
+using UserService.Models;
+
 public class User
 {
     public int UserId { get; set; }
@@ -32,5 +34,4 @@ public class User
     public string? ActivationCode { get; set; }
 
     public bool IsActive { get; set; }
-
 }

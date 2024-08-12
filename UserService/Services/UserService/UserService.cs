@@ -3,10 +3,11 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.IdentityModel.Tokens;
 using UserService.Responses;
 using UserService.Configuration;
+using UserService.Enums;
+using UserService.Models;
 
 namespace UserService.Services.UserService;
 
@@ -35,14 +36,21 @@ public class UserService : IUserService
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_jwtSettings.Key); // Ensure this key is at least 32 bytes long
 
+        var subjectItem = new ClaimsIdentity();
+        subjectItem.AddClaim(new Claim(ClaimTypes.Name, user.Username));
+        subjectItem.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()));
+        if (username == "admin" && password == "admin")
+        {
+            subjectItem.AddClaim(new Claim(ClaimTypes.Role, "Admin"));
+        }
+        else
+        {
+            subjectItem.AddClaim(new Claim(ClaimTypes.Role, "NormalUser"));
+        }
+        
         var tokenDescriptor = new SecurityTokenDescriptor
         {
-            Subject = new ClaimsIdentity(new Claim[]
-            {
-            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, "User")
-            }),
+            Subject = subjectItem,
             Expires = DateTime.UtcNow.AddDays(_jwtSettings.ExpireDays),
             Issuer = _jwtSettings.Issuer,
             Audience = _jwtSettings.Audience,
@@ -57,7 +65,8 @@ public class UserService : IUserService
             Token = tokenString,
             Expiration = tokenDescriptor.Expires ?? DateTime.UtcNow.AddDays(_jwtSettings.ExpireDays),
             UserId = user.UserId,
-            Username = user.Username
+            Username = user.Username,
+            UserRole = username == "admin" && password == "admin" ? UserRole.Admin : UserRole.NormalUser
         };
     }
     
@@ -83,7 +92,16 @@ public class UserService : IUserService
             Visibility = request.Visibility
         };
 
+        var userRole = new UserRoleMapping()
+        {
+            UserId = user.UserId,
+            RoleId = (int)UserRole.NormalUser,
+            UpdatedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+
         _context.Users.Add(user);
+        _context.UserRoles.Add(userRole);
         await _context.SaveChangesAsync();
 
         _eventPublisher.PublishUserCreated(user);
