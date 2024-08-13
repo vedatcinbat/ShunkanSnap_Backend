@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserService", "UserService\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostService", "PostService\PostService.csproj", "{D953CEDD-7DD9-4FF6-9509-06DC41316087}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicTrackService", "MusicTrackService\MusicTrackService.csproj", "{A0A4B9DF-71BE-460F-959F-499B97A01338}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocationService", "LocationService\LocationService.csproj", "{CBAC3E37-1B6F-45B4-817C-000D26311DE6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +31,14 @@ Global
 		{D953CEDD-7DD9-4FF6-9509-06DC41316087}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D953CEDD-7DD9-4FF6-9509-06DC41316087}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D953CEDD-7DD9-4FF6-9509-06DC41316087}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0A4B9DF-71BE-460F-959F-499B97A01338}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0A4B9DF-71BE-460F-959F-499B97A01338}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0A4B9DF-71BE-460F-959F-499B97A01338}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0A4B9DF-71BE-460F-959F-499B97A01338}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CBAC3E37-1B6F-45B4-817C-000D26311DE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBAC3E37-1B6F-45B4-817C-000D26311DE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBAC3E37-1B6F-45B4-817C-000D26311DE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBAC3E37-1B6F-45B4-817C-000D26311DE6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

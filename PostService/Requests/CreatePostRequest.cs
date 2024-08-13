@@ -1,0 +1,24 @@
+﻿using PostService.Enums;
+
+namespace PostService;
+
+public class CreatePostRequest
+{
+    public int UserId { get; set; }
+    
+    public required string Caption { get; set; }
+    
+    public int LikesCount { get; set; }
+    
+    public int CommentsCount { get; set; }
+    
+    public PostActivityStatus IsActive { get; set; }
+    
+    public PostVisibility Visibility { get; set; }
+    
+    public PostType PostType { get; set; }
+    
+    public int? MusicTrackId { get; set; }
+    
+    public int? LocationId { get; set; }
+}
