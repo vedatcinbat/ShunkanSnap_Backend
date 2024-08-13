@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using PostService.Configuration;
 using PostService.Data;
+using PostService.Services.PostService;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,7 +51,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddDbContext<PostDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("PostDb")));
 
-//builder.Services.AddScoped<IPostService, PostService.Services.PostService.PostService>();
+builder.Services.AddScoped<IPostService, PostService.Services.PostService.PostService>();
 
 // HttpClient For FollowService
 //builder.Services.AddHttpClient<IFollowServiceClient, FollowServiceClient>(client =>

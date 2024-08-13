@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MusicTrackService.Data;
+using MusicTrackService.Services.MusicService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,8 @@ builder.Services.AddDbContext<MusicTrackDbContext>(option =>
 {
     option.UseSqlServer(builder.Configuration.GetConnectionString("MusicTrackDb"));
 });
+
+builder.Services.AddScoped<IMusicTrackService, MusicTrackService.Services.MusicService.MusicTrackService>();
 
 var app = builder.Build();
 
